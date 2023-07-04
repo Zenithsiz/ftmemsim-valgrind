@@ -2241,6 +2241,28 @@
 /none/tests/x86-freebsd/Makefile.in
 /none/tests/x86-freebsd/445032
 
+# /ftmemsim_trace/
+/ftmemsim_trace/*.so
+/ftmemsim_trace/.deps
+/ftmemsim_trace/ftmemsim_trace-*-darwin
+/ftmemsim_trace/ftmemsim_trace-*-linux
+/ftmemsim_trace/ftmemsim_trace-*-solaris
+/ftmemsim_trace/ftmemsim_trace-*-freebsd
+/ftmemsim_trace/Makefile
+/ftmemsim_trace/Makefile.in
+
+# /ftmemsim_trace/docs/
+/ftmemsim_trace/docs/Makefile.in
+/ftmemsim_trace/docs/Makefile
+
+# /ftmemsim_trace/tests/
+/ftmemsim_trace/tests/Makefile
+/ftmemsim_trace/tests/Makefile.in
+/ftmemsim_trace/tests/*.stderr.diff*
+/ftmemsim_trace/tests/*.stderr.out
+/ftmemsim_trace/tests/*.stdout.diff*
+/ftmemsim_trace/tests/*.stdout.out
+
 # /perf/
 /perf/*.dSYM
 /perf/.deps
@@ -2307,3 +2329,6 @@
 
 # /VEX/switchback/
 /VEX/switchback/switchback
+
+# Build
+build/

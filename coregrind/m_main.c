@@ -89,7 +89,7 @@ static void usage_NORETURN ( int need_help )
 "    --tool=<name>             use the Valgrind tool named <name> [memcheck]\n"
 "                              available tools are:\n"
 "                              memcheck cachegrind callgrind helgrind drd\n"
-"                              massif dhat lackey none exp-bbv\n"
+"                              massif dhat lackey ftmemsim_trace none exp-bbv\n"
 "\n"
 "  basic user options for all Valgrind tools, with defaults in [ ]:\n"
 "    -h --help                 show this message\n"

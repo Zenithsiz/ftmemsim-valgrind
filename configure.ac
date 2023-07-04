@@ -5430,6 +5430,8 @@ AC_CONFIG_FILES([
    dhat/tests/Makefile
    lackey/Makefile
    lackey/tests/Makefile
+   ftmemsim_trace/Makefile
+   ftmemsim_trace/tests/Makefile
    none/Makefile
    none/tests/Makefile
    none/tests/scripts/Makefile

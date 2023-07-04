@@ -12,6 +12,7 @@ TOOLS = \
 		massif \
 		dhat \
 		lackey \
+		ftmemsim_trace \
 		none
 
 EXP_TOOLS = \
