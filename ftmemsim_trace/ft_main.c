@@ -4,15 +4,62 @@
 /*--------------------------------------------------------------------*/
 
 #include "pub_tool_basics.h"
+#include "pub_tool_clientstate.h"
 #include "pub_tool_debuginfo.h"
 #include "pub_tool_libcassert.h"
 #include "pub_tool_libcbase.h"
+#include "pub_tool_libcfile.h"
 #include "pub_tool_libcprint.h"
+#include "pub_tool_libcproc.h"
 #include "pub_tool_machine.h" // VG_(fnptr_to_fnentry)
+#include "pub_tool_mallocfree.h"
 #include "pub_tool_options.h"
+#include "pub_tool_oset.h"
 #include "pub_tool_tooliface.h"
+#include "pub_tool_xarray.h"
 
-static void ft_post_clo_init(void) {}
+#include "ft_arch.c"
+#include "ft_arch.h"
+#include "ft_sim.c"
+
+static Int min_line_size = 0; /* min of L1 and LL cache line sizes */
+
+static cache_t clo_I1_cache = UNDEFINED_CACHE;
+static cache_t clo_D1_cache = UNDEFINED_CACHE;
+static cache_t clo_LL_cache = UNDEFINED_CACHE;
+
+static void ft_post_clo_init(void)
+{
+   cache_t I1c, D1c, LLc;
+
+   VG_(post_clo_init_configure_caches)(&I1c, &D1c, &LLc, &clo_I1_cache,
+                                       &clo_D1_cache, &clo_LL_cache);
+
+   // min_line_size is used to make sure that we never feed
+   // accesses to the simulator straddling more than two
+   // cache lines at any cache level
+   min_line_size =
+      (I1c.line_size < D1c.line_size) ? I1c.line_size : D1c.line_size;
+   min_line_size =
+      (LLc.line_size < min_line_size) ? LLc.line_size : min_line_size;
+
+   Int largest_load_or_store_size =
+      VG_(machine_get_size_of_largest_guest_register)();
+   if (min_line_size < largest_load_or_store_size) {
+      /* We can't continue, because the cache simulation might
+         straddle more than 2 lines, and it will assert.  So let's
+         just stop before we start. */
+      VG_(umsg)("cannot continue: the minimum line size (%d)\n",
+                (Int)min_line_size);
+      VG_(umsg)(
+         "  must be equal to or larger than the maximum register size (%d)\n",
+         largest_load_or_store_size);
+      VG_(umsg)("  but it is not.  Exiting now.\n");
+      VG_(exit)(1);
+   }
+
+   cachesim_initcaches(I1c, D1c, LLc);
+}
 
 typedef enum { Event_Ir, Event_Dr, Event_Dw, Event_Dm } EventKind;
 
@@ -59,22 +106,42 @@ typedef struct {
 static Event events[N_EVENTS];
 static Int   events_used = 0;
 
+// Skips the cache for all traces
+static Bool skip_cache = False;
+
 // Tracing instructions
 static void trace_instr(Addr addr, SizeT size)
 {
-   VG_(printf)("I %08lx\n", addr);
+
+   if (skip_cache || cachesim_ref_is_miss(&I1, addr, size)) {
+      if (skip_cache || cachesim_ref_is_miss(&LL, addr, size)) {
+         VG_(printf)("I %08lx\n", addr);
+      }
+   }
 }
 static void trace_store(Addr addr, SizeT size)
 {
-   VG_(printf)("S %08lx\n", addr);
+   if (skip_cache || cachesim_ref_is_miss(&D1, addr, size)) {
+      if (skip_cache || cachesim_ref_is_miss(&LL, addr, size)) {
+         VG_(printf)("S %08lx\n", addr);
+      }
+   }
 }
 static void trace_load(Addr addr, SizeT size)
 {
-   VG_(printf)("L %08lx\n", addr);
+   if (skip_cache || cachesim_ref_is_miss(&D1, addr, size)) {
+      if (skip_cache || cachesim_ref_is_miss(&LL, addr, size)) {
+         VG_(printf)("L %08lx\n", addr);
+      }
+   }
 }
 static void trace_modify(Addr addr, SizeT size)
 {
-   VG_(printf)("M %08lx\n", addr);
+   if (skip_cache || cachesim_ref_is_miss(&D1, addr, size)) {
+      if (skip_cache || cachesim_ref_is_miss(&LL, addr, size)) {
+         VG_(printf)("M %08lx\n", addr);
+      }
+   }
 }
 
 static void flushEvents(IRSB* sb)
